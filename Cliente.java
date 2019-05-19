@@ -4,16 +4,16 @@ package holamundo_sockets;
  * */
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.DataOutputStream;
+// import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
 import javax.swing.*;
-
-
 
 public class Cliente {
 
@@ -34,7 +34,7 @@ class MarcoCliente extends JFrame{
 		
 		setBounds(600,300,280,350);
 				
-		LaminaMarcoCliente milamina=new LaminaMarcoCliente();
+		LaminaMarcoCliente milamina = new LaminaMarcoCliente();
 		
 		add(milamina);
 		
@@ -43,7 +43,7 @@ class MarcoCliente extends JFrame{
 	
 }
 
-class LaminaMarcoCliente extends JPanel{
+class LaminaMarcoCliente extends JPanel implements Runnable {
 	
 	public LaminaMarcoCliente(){
 		
@@ -69,7 +69,11 @@ class LaminaMarcoCliente extends JPanel{
 		EnviaTexto miEvento = new EnviaTexto();
 		miboton.addActionListener(miEvento);
 		
-		add(miboton);			
+		add(miboton);
+		
+		/**  */
+		Thread mihilo = new Thread(this);
+		mihilo.start();
 	}
 	
 	private class EnviaTexto implements ActionListener{
@@ -77,6 +81,9 @@ class LaminaMarcoCliente extends JPanel{
 		//Vamos a crear un Socket dentro de la accion ActionPerformed, para que al pulsar el boton, envie el contenido
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			
+			/* Con esto también veremos en el chat lo que nosotros vamos escribiendo **/
+			campochat.append("\n Yo: " + campo1.getText());
 			
 			//En este bloque del try preparamos la aplicacion de cliente para que mande los datos
 			try {
@@ -123,6 +130,36 @@ class LaminaMarcoCliente extends JPanel{
 	private JTextArea campochat; 
 	
 	private JButton miboton;
+
+	/* Dentro de este método run es donde implementamos el código para que esta clase esté permanentemente a 
+	 * la escucha. */
+	@Override
+	public void run() {
+		
+		try {
+			/***/
+			ServerSocket servidorCliente = new ServerSocket(9090);
+			
+			/* Canal por el que recibe la informacion */
+			Socket cliente;
+			PaqueteEnvio paqueteRecibido;
+			
+			while(true) {
+				
+				cliente = servidorCliente.accept();
+				ObjectInputStream flujoentrada = new ObjectInputStream(cliente.getInputStream());
+				
+				/** Parseamos porque readPbject nos devuelve un objeto genérico */
+				paqueteRecibido = (PaqueteEnvio) flujoentrada.readObject();
+				
+				campochat.append("\n" + paqueteRecibido.getNick() + ": " + paqueteRecibido.getMensaje());
+			}
+			
+		} catch(Exception e) {
+			System.out.println(e.getMessage());
+		}
+		
+	}
 	
 }
 
